@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.DS_Store
+.ipynb_checkpoints/
+
+# Local source data; download from UCI using the README instructions.
+dataset/*.xlsx
+dataset/*.csv
+dataset/*.zip
+
+# Generated outputs
+reports/figures/
+*.html
