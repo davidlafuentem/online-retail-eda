@@ -28,7 +28,26 @@ El notebook utiliza este Excel como fuente oficial. El CSV que pueda existir en 
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-jupyter notebook
+.venv/bin/jupyter notebook
+```
+
+Si el comando `jupyter` no aparece después de activar el entorno, utiliza siempre la ruta explícita
+`.venv/bin/jupyter`. La ejecución reproducible completa del notebook es:
+
+```bash
+.venv/bin/jupyter nbconvert \
+  --to notebook \
+  --execute \
+  --inplace \
+  notebooks/01_online_retail_eda.ipynb \
+  --ExecutePreprocessor.timeout=300
+```
+
+La validación del código y la regeneración del informe son:
+
+```bash
+.venv/bin/python -m py_compile src/*.py
+.venv/bin/python src/create_executive_pdf.py
 ```
 
 Abre `notebooks/01_online_retail_eda.ipynb` y ejecuta las celdas de principio a fin. En Google Colab, sube `Online Retail.xlsx` y la carpeta `src/` al runtime; el notebook buscará `/content/Online Retail.xlsx`.
@@ -65,14 +84,17 @@ Consulta el [resumen ejecutivo bilingüe](reports/executive_summary.md) para con
 
 ### Extensiones del nivel avanzado
 
-El análisis incorpora población de 2011 del [Banco Mundial](https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?date=2011&format=json&per_page=400) mediante `merge` para calcular ingresos por habitante. También incluye una media móvil de tres meses, una visualización interactiva con Plotly y reglas reutilizables en `src/cleaning.py`.
+El análisis incorpora población de 2011 del [Banco Mundial](https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?date=2011&format=json&per_page=400) mediante `merge` para calcular ingresos por habitante. También incluye una media móvil de tres meses, una visualización interactiva con Plotly, una auditoría experta de cancelaciones, una matriz de exposición por país y un análisis de clientes identificados. Las métricas de clientes usan únicamente filas con `CustomerID` observado.
 
 Para regenerar el informe ejecutivo experto:
 
 ```bash
-cd src
-../.venv/bin/python create_executive_pdf.py
+.venv/bin/python src/create_executive_pdf.py
 ```
+
+Resultados esperados de la auditoría de clientes: 4.338 clientes identificados, 75,1% de cobertura
+de filas, 83,5% de cobertura de ventas brutas positivas y 65,6% de clientes con más de una factura.
+Este último indicador describe repetición observada de facturas; no mide retención, churn ni causalidad.
 
 ### Asistencia de IA
 
@@ -114,7 +136,26 @@ The notebook uses this Excel file as the authoritative source. Any CSV in `datas
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-jupyter notebook
+.venv/bin/jupyter notebook
+```
+
+If `jupyter` is not available after activation, use the explicit `.venv/bin/jupyter` path. To execute
+the complete notebook reproducibly:
+
+```bash
+.venv/bin/jupyter nbconvert \
+  --to notebook \
+  --execute \
+  --inplace \
+  notebooks/01_online_retail_eda.ipynb \
+  --ExecutePreprocessor.timeout=300
+```
+
+Validate and regenerate the expert report with:
+
+```bash
+.venv/bin/python -m py_compile src/*.py
+.venv/bin/python src/create_executive_pdf.py
 ```
 
 Open `notebooks/01_online_retail_eda.ipynb` and run it from top to bottom. In Google Colab, upload `Online Retail.xlsx` and the `src/` directory to the runtime; the notebook will look for `/content/Online Retail.xlsx`.
@@ -137,14 +178,17 @@ See the [bilingual executive summary](reports/executive_summary.md) for findings
 
 ### Advanced-level extensions
 
-The analysis enriches country results with 2011 population estimates from the [World Bank](https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?date=2011&format=json&per_page=400) through a documented merge. It also includes a justified three-month moving average, a Plotly interactive visualisation and reusable preparation rules in `src/cleaning.py`.
+The analysis enriches country results with 2011 population estimates from the [World Bank](https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?date=2011&format=json&per_page=400) through a documented merge. It also includes a justified three-month moving average, a Plotly interactive visualisation, an expert cancellation audit, a country exposure matrix and an identified-customer analysis. Customer metrics use only rows with an observed `CustomerID`.
 
 To regenerate the expert executive report:
 
 ```bash
-cd src
-../.venv/bin/python create_executive_pdf.py
+.venv/bin/python src/create_executive_pdf.py
 ```
+
+Expected customer-audit results are 4,338 identified customers, 75.1% row coverage, 83.5% gross
+positive-sales coverage and 65.6% of identified customers linked to more than one invoice. The last
+metric describes observed repeat invoicing; it is not a retention, churn or causal measure.
 
 ### AI assistance
 

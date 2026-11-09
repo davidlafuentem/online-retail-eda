@@ -354,6 +354,7 @@ def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT
     data = stats["data"]
     monthly = stats["monthly"]
     country = stats["country"]
+    country_expert = stats["country_expert"]
     product = stats["product"]
     customer = stats["customer"]
     audit = stats["cancellation_audit"]
@@ -377,7 +378,7 @@ def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT
         bullets = [
             f"El valor cancelado equivale al {stats['cancelled']/stats['gross']*100:.1f}% de las ventas brutas positivas; el {stats['cancel_rate']:.1f}% de las facturas contiene alguna cancelación.",
             f"El Reino Unido aporta {stats['uk_share']:.1f}% del ingreso neto de líneas con precio positivo: existe dependencia de un mercado principal.",
-            f"Los clientes recurrentes concentran {stats['repeat_revenue_share']:.1f}% del ingreso identificado, pero CustomerID solo cubre {stats['customer_coverage']:.1f}% de las filas.",
+            f"Los clientes con más de una factura concentran {stats['repeat_revenue_share']:.1f}% del ingreso identificado, pero CustomerID solo cubre {stats['customer_coverage']:.1f}% de las filas.",
             "La facturación no permite conocer beneficio sin costes, margen y gastos logísticos.",
         ]
         for i, text in enumerate(bullets):
@@ -490,10 +491,118 @@ def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT
         )
         finish(pdf, fig)
 
-        # 5. Expert cancellation audit.
+        # 5. Expert country exposure matrix.
         fig, _ = page(
             pdf,
-            "4 · Diagnóstico experto de cancelaciones",
+            "4 · Matriz experta de países",
+            "Dónde priorizar investigación combinando peso económico y exposición a cancelaciones",
+        )
+        fig.text(
+            0.10,
+            0.885,
+            "Países con ≥20 facturas · tamaño = valor cancelado · color = señal relativa de exposición.",
+            fontsize=8.5,
+            color=GREY,
+        )
+        ax1 = fig.add_axes([0.12, 0.28, 0.76, 0.48])
+        comparable_expert = country_expert.loc[country_expert["ComparableExposure"]].copy()
+        exposure_colors = {
+            "Above-average cancellation exposure": RED,
+            "Below-average cancellation exposure": GREEN,
+            "Mixed cancellation signals": "#ED7D31",
+        }
+        point_colors = comparable_expert["ExposureClass"].map(exposure_colors).fillna("#ED7D31")
+        point_sizes = 60 + comparable_expert["CancelledValue"] / comparable_expert["CancelledValue"].max() * 700
+        ax1.scatter(
+            comparable_expert["NetRevenuePositivePriceLines"],
+            comparable_expert["InvoiceCancellationRatePct"],
+            s=point_sizes,
+            c=point_colors,
+            alpha=.75,
+            edgecolor="white",
+            linewidth=.7,
+        )
+        labelled_countries = {"United Kingdom", "Japan", "Germany", "Netherlands", "Ireland"}
+        for row in comparable_expert.itertuples():
+            if row.Country not in labelled_countries:
+                continue
+            label = "UK" if row.Country == "United Kingdom" else str(row.Country)
+            ax1.annotate(label, (row.NetRevenuePositivePriceLines, row.InvoiceCancellationRatePct), fontsize=6.5, xytext=(3, 3), textcoords="offset points")
+        ax1.set_xscale("log")
+        ax1.set_xlabel("Ingreso neto — líneas con precio positivo (£, escala logarítmica)")
+        ax1.set_ylabel("Facturas afectadas (%)")
+        ax1.set_title("Peso económico y exposición operativa por país", loc="left", weight="bold")
+        ax1.grid(alpha=.25)
+        for label, color in exposure_colors.items():
+            ax1.scatter([], [], s=70, color=color, label=label)
+        ax1.legend().remove()
+        fig.text(
+            0.13,
+            0.785,
+            "Color: rojo = ambas tasas altas · verde = ambas bajas · naranja = señales mixtas",
+            fontsize=7.5,
+            color=GREY,
+        )
+        caption(
+            fig,
+            "prioriza investigación; no mide cuota, margen ni causa.",
+            0.15,
+        )
+        finish(pdf, fig)
+
+        # 6. Identified-customer concentration and priority accounts.
+        fig, _ = page(
+            pdf,
+            "5 · Clientes identificados",
+            "Concentración del ingreso observado y cuentas que requieren continuidad de servicio",
+        )
+        customer_metrics = customer_expert["metrics"]
+        fig.text(
+            0.10,
+            0.885,
+            f"{customer_metrics['identified_customer_count']:,} clientes identificados · {customer_metrics['gross_sales_customer_coverage_pct']:.1f}% de ventas brutas positivas cubiertas por CustomerID.",
+            fontsize=8.5,
+            color=GREY,
+        )
+        ax1 = fig.add_axes([0.28, 0.52, 0.62, 0.27])
+        top_customers = customer_expert["customers"].head(10).copy().sort_values("Revenue")
+        top_customers["CustomerRank"] = np.arange(len(top_customers), 0, -1)
+        labels = [f"Cliente {rank}" for rank in top_customers["CustomerRank"]]
+        ax1.barh(labels, top_customers["Revenue"], color=GREEN)
+        ax1.set_xlabel("Ingreso bruto positivo (£)")
+        ax1.set_ylabel("Ranking por ingreso")
+        ax1.set_title("Top 10 clientes identificados por ingreso", loc="left", weight="bold")
+        ax1.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"£{value / 1000:.0f}k"))
+        ax1.grid(axis="x", alpha=.25)
+        ax1.tick_params(axis="y", labelsize=8)
+        caption(
+            fig,
+            "el ranking ayuda a localizar cuentas prioritarias, pero no prueba rentabilidad ni permite medir retención con este dataset.",
+            0.43,
+        )
+        ax2 = fig.add_axes([0.12, 0.14, 0.76, 0.20])
+        customer_sorted = customer_expert["customers"].sort_values("Revenue", ascending=False)
+        cumulative = customer_sorted["Revenue"].cumsum() / customer_sorted["Revenue"].sum() * 100
+        customer_share = np.arange(1, len(cumulative) + 1) / len(cumulative) * 100
+        ax2.plot(customer_share, cumulative, color=GREEN)
+        ax2.axhline(80, linestyle="--", color=GREY, linewidth=1, label="80% del ingreso")
+        ax2.axvline(customer_metrics["customers_for_80_share_pct"], linestyle=":", color=GREY, linewidth=1)
+        ax2.set_xlabel("Porcentaje acumulado de clientes identificados (ordenados por ingreso)")
+        ax2.set_ylabel("Ingreso acumulado (%)")
+        ax2.set_title("Concentración acumulada del ingreso identificado", loc="left", weight="bold", fontsize=10)
+        ax2.legend(frameon=False, fontsize=7)
+        ax2.grid(alpha=.25)
+        caption(
+            fig,
+            f"{customer_metrics['customers_for_80_share_pct']:.1f}% de los clientes identificados aporta 80% del ingreso identificado; no se extrapola a filas sin CustomerID.",
+            0.075,
+        )
+        finish(pdf, fig)
+
+        # 7. Expert cancellation audit.
+        fig, _ = page(
+            pdf,
+            "6 · Diagnóstico experto de cancelaciones",
             "Exposición por tiempo, país y producto; la clasificación C no demuestra una devolución",
         )
         fig.text(
@@ -528,7 +637,7 @@ def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT
         peak_value_month = audit_monthly.loc[audit_monthly["CancellationValueRatePct"].idxmax(), "Month"]
         caption(
             fig,
-            f"tasa de factura recurrente; impacto monetario máximo en {peak_value_month}. Diciembre es incompleto.",
+            f"tasa de facturas afectadas; impacto monetario máximo en {peak_value_month}. Diciembre es incompleto.",
             0.485,
         )
 
@@ -561,8 +670,8 @@ def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT
         )
         finish(pdf, fig)
 
-        # 6. Decisions and limitations, no chart overload.
-        fig, _ = page(pdf, "5 · Prioridades para la dirección", "Qué decisiones están respaldadas por los datos y cuáles requieren información adicional")
+        # 8. Decisions and limitations, no chart overload.
+        fig, _ = page(pdf, "7 · Prioridades para la dirección", "Qué decisiones están respaldadas por los datos y cuáles requieren información adicional")
         sections = [
             ("Actuar en 0–30 días", ["Finanzas y Operaciones: conciliar ventas y cancelaciones semanalmente; KPI: valor cancelado/ventas y tasa de facturas afectadas.", "Operaciones y Atención al Cliente: clasificar el motivo de cada cancelación y automatizar casos claros y repetitivos.", "Operaciones y CRM: mejorar la captura de CustomerID; KPI: cobertura de filas identificadas."]),
             ("Decidir en 30–90 días", ["Comercial y Supply: revisar referencias de mayor ingreso y casos extremos de cancelación con disponibilidad y margen.", "Dirección Comercial: comparar países con ingreso, facturas, cancelaciones, logística y rentabilidad.", "Legal y Atención al Cliente: pilotar cambios limitados en devoluciones solo con métricas de conversión, reclamaciones, repetición, coste y margen."]),
