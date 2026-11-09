@@ -64,6 +64,8 @@ Los cinco países con mayor **ingreso neto de líneas con precio positivo** son:
 
 El Reino Unido representa el **84.0%** del ingreso neto de líneas con precio positivo. Las comparaciones internacionales deben incorporar facturas, cancelaciones, costes logísticos y margen; el ingreso por habitante solo aporta contexto y no mide cuota de mercado.
 
+La matriz país prioriza exposición observada, no oportunidad de mercado: entre países con al menos 20 facturas, **Japan** presenta la mayor tasa de facturas afectadas (**32.1%**), mientras que Reino Unido concentra el mayor impacto absoluto por su volumen. Ninguna de estas señales identifica una causa ni justifica expansión o retirada sin costes, tamaño de mercado y motivos de cancelación.
+
 ## 6. Prioridades de gestión
 
 1. **En 0–30 días, Finanzas y Operaciones:** conciliar ventas y cancelaciones semanalmente. KPI: valor cancelado/ventas brutas y tasa de facturas afectadas.

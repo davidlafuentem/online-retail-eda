@@ -12,6 +12,7 @@ from matplotlib.ticker import FuncFormatter
 
 from cleaning import prepare_transaction_data
 from cancellation_analysis import cancellation_audit
+from country_analysis import country_performance
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -111,6 +112,7 @@ def base_data() -> dict[str, object]:
     monthly_pearson = monthly["GrossRevenue"].corr(monthly["CancellationValue"])
     monthly_spearman = monthly["GrossRevenue"].rank().corr(monthly["CancellationValue"].rank())
     audit = cancellation_audit(data)
+    country_expert = country_performance(data, minimum_invoices=20)
     # Product rankings use net lines and exclude operational concepts already
     # documented in the notebook (postage, discounts, fees and samples).
     non_merchandise_codes = {
@@ -166,6 +168,7 @@ def base_data() -> dict[str, object]:
         "best_month": monthly.loc[monthly["GrossRevenue"].idxmax()],
         "worst_month": monthly.loc[monthly["GrossRevenue"].idxmin()],
         "cancellation_audit": audit,
+        "country_expert": country_expert,
     }
 
 
@@ -194,6 +197,7 @@ def generate_markdown(stats: dict[str, object]) -> None:
     cancellations = stats["cancellations"]
     monthly = stats["monthly"]
     audit = stats["cancellation_audit"]
+    country_expert = stats["country_expert"]
     product = stats["product"]
     country = stats["country"]
     best = stats["best_month"]
@@ -211,6 +215,8 @@ def generate_markdown(stats: dict[str, object]) -> None:
     comparable_country = audit_country.loc[audit_country["ComparableExposure"]]
     top_cancel_country = comparable_country.sort_values("CancelledValue", ascending=False).iloc[0]
     top_cancel_product = audit_product.iloc[0]
+    comparable_country_expert = country_expert.loc[country_expert["ComparableExposure"]]
+    highest_country_rate = comparable_country_expert.sort_values("InvoiceCancellationRatePct", ascending=False).iloc[0]
     md = f"""# Informe ejecutivo — Online Retail EDA
 
 ## 1. Lectura para gerencia
@@ -272,6 +278,8 @@ Los cinco países con mayor **ingreso neto de líneas con precio positivo** son:
 """ + "\n".join(f"- **{row.Country}:** {money(row.Revenue)} en {int(row.Invoices):,} facturas" for row in top_countries.itertuples()) + f"""
 
 El Reino Unido representa el **{pct(stats['uk_share'])}** del ingreso neto de líneas con precio positivo. Las comparaciones internacionales deben incorporar facturas, cancelaciones, costes logísticos y margen; el ingreso por habitante solo aporta contexto y no mide cuota de mercado.
+
+La matriz país prioriza exposición observada, no oportunidad de mercado: entre países con al menos 20 facturas, **{highest_country_rate['Country']}** presenta la mayor tasa de facturas afectadas (**{highest_country_rate['InvoiceCancellationRatePct']:.1f}%**), mientras que Reino Unido concentra el mayor impacto absoluto por su volumen. Ninguna de estas señales identifica una causa ni justifica expansión o retirada sin costes, tamaño de mercado y motivos de cancelación.
 
 ## 6. Prioridades de gestión
 
