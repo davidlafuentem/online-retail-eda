@@ -46,9 +46,9 @@ La prioridad inicial debería ser entender qué ocurre y corregir causas operati
 
 ## 4. Clientes y concentración de valor
 
-Los clientes recurrentes representan el **65.6%** de los clientes identificados y concentran el **93.1%** del ingreso dentro de esa población. No puede extrapolarse a las filas sin `CustomerID`: falta ese identificador en el **24.9%** de las filas.
+Los clientes recurrentes —definidos aquí como `CustomerID` asociado a más de una factura única— representan el **65.6%** de los clientes identificados y concentran el **93.1%** del ingreso dentro de esa población. `CustomerID` está disponible en el **75.1%** de las filas, pero cubre el **83.5%** de las ventas brutas positivas; ambas coberturas deben distinguirse. No puede extrapolarse la concentración identificada a las filas sin identificador.
 
-Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
+Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. La cobertura de `CustomerID` en las líneas de cancelación es del **95.9%**, pero esto no revela el motivo de esas cancelaciones. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
 
 ## 5. Productos y mercados
 
@@ -109,7 +109,7 @@ The business shows substantial recorded activity, but management interpretation 
 
 Gross sales peak in **2011-11** (£1,509,496) and reach their minimum in **2011-02** (£523,632). The monthly Pearson correlation between gross sales and cancelled value is **-0.13**, and the rank correlation is **0.21**, based on only 13 months. This does not show a stable co-movement that can forecast cancellations from sales; cancellation control should be managed as a separate operational process.
 
-Repeat customers account for **65.6%** of identified customers and **93.1%** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **24.9%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not enough to justify loyalty investment without margin and cost data.
+Repeat customers—defined here as an observed `CustomerID` linked to more than one unique invoice—account for **65.6%** of identified customers and **93.1%** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **24.9%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not a retention or churn measure, and it is not enough to justify loyalty investment without margin and cost data.
 
 ### Action line: identify and reduce avoidable cancellations
 

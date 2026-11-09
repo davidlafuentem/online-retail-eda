@@ -35,6 +35,10 @@ The report uses distinct names for revenue measures that use different populatio
 | Invoice cancellation rate | Cancelled unique invoices / all unique invoices | Invoice-level status: any `C` line marks the invoice | Invoice | Share of invoices affected by an identified cancellation |
 | Recorded balance — all lines | Sum of `Revenue` | All source rows | Invoice line | Descriptive balance including non-positive-price adjustments |
 | Net revenue — positive-price lines | Sum of `Revenue` | `UnitPrice > 0`, positive and negative quantities retained | Invoice line | Comparable commercial view used for product and country rankings |
+| Customer row coverage | Share of all source rows with non-null `CustomerID` | All source rows | Invoice line | Identifier availability; not customer or revenue coverage |
+| Identified gross-sales coverage | Identified gross positive sales / all gross positive sales | Non-cancelled, `Quantity > 0`, `UnitPrice > 0`; numerator also requires non-null `CustomerID` | Invoice line | Economic coverage of observed customer identifiers |
+| Repeat identified-customer rate | Identified customers with more than one unique invoice / identified customers | Gross positive sales with non-null `CustomerID` | Customer | Observed repeat-invoice pattern; not retention or churn |
+| Repeat identified-revenue share | Gross positive sales from repeat identified customers / all identified gross positive sales | Same customer population; repeat means more than one unique invoice | Customer | Revenue concentration within identified customers; not whole-business concentration |
 
 `Recorded balance — all lines` and `Net revenue — positive-price lines` must never be presented under the same generic label such as `NetRevenue`. Material KPIs are reconciled through direct totals and grouped totals before the executive report is generated.
 

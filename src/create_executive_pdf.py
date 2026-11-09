@@ -13,6 +13,7 @@ from matplotlib.ticker import FuncFormatter
 from cleaning import prepare_transaction_data
 from cancellation_analysis import cancellation_audit
 from country_analysis import country_performance
+from customer_analysis import customer_performance
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -113,6 +114,7 @@ def base_data() -> dict[str, object]:
     monthly_spearman = monthly["GrossRevenue"].rank().corr(monthly["CancellationValue"].rank())
     audit = cancellation_audit(data)
     country_expert = country_performance(data, minimum_invoices=20)
+    customer_expert = customer_performance(data)
     # Product rankings use net lines and exclude operational concepts already
     # documented in the notebook (postage, discounts, fees and samples).
     non_merchandise_codes = {
@@ -169,6 +171,7 @@ def base_data() -> dict[str, object]:
         "worst_month": monthly.loc[monthly["GrossRevenue"].idxmin()],
         "cancellation_audit": audit,
         "country_expert": country_expert,
+        "customer_expert": customer_expert,
     }
 
 
@@ -198,6 +201,7 @@ def generate_markdown(stats: dict[str, object]) -> None:
     monthly = stats["monthly"]
     audit = stats["cancellation_audit"]
     country_expert = stats["country_expert"]
+    customer_expert = stats["customer_expert"]
     product = stats["product"]
     country = stats["country"]
     best = stats["best_month"]
@@ -217,6 +221,7 @@ def generate_markdown(stats: dict[str, object]) -> None:
     top_cancel_product = audit_product.iloc[0]
     comparable_country_expert = country_expert.loc[country_expert["ComparableExposure"]]
     highest_country_rate = comparable_country_expert.sort_values("InvoiceCancellationRatePct", ascending=False).iloc[0]
+    customer_metrics = customer_expert["metrics"]
     md = f"""# Informe ejecutivo — Online Retail EDA
 
 ## 1. Lectura para gerencia
@@ -265,9 +270,9 @@ La prioridad inicial debería ser entender qué ocurre y corregir causas operati
 
 ## 4. Clientes y concentración de valor
 
-Los clientes recurrentes representan el **{pct(stats['repeat_customer_share'])}** de los clientes identificados y concentran el **{pct(stats['repeat_revenue_share'])}** del ingreso dentro de esa población. No puede extrapolarse a las filas sin `CustomerID`: falta ese identificador en el **{100-stats['customer_coverage']:.1f}%** de las filas.
+Los clientes recurrentes —definidos aquí como `CustomerID` asociado a más de una factura única— representan el **{pct(stats['repeat_customer_share'])}** de los clientes identificados y concentran el **{pct(stats['repeat_revenue_share'])}** del ingreso dentro de esa población. `CustomerID` está disponible en el **{stats['customer_coverage']:.1f}%** de las filas, pero cubre el **{customer_metrics['gross_sales_customer_coverage_pct']:.1f}%** de las ventas brutas positivas; ambas coberturas deben distinguirse. No puede extrapolarse la concentración identificada a las filas sin identificador.
 
-Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
+Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. La cobertura de `CustomerID` en las líneas de cancelación es del **{customer_metrics['cancellation_row_customer_coverage_pct']:.1f}%**, pero esto no revela el motivo de esas cancelaciones. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
 
 ## 5. Productos y mercados
 
@@ -320,7 +325,7 @@ The business shows substantial recorded activity, but management interpretation 
 
 Gross sales peak in **{best['Month']}** ({money(best['GrossRevenue'])}) and reach their minimum in **{worst['Month']}** ({money(worst['GrossRevenue'])}). The monthly Pearson correlation between gross sales and cancelled value is **{stats['monthly_pearson']:.2f}**, and the rank correlation is **{stats['monthly_spearman']:.2f}**, based on only 13 months. This does not show a stable co-movement that can forecast cancellations from sales; cancellation control should be managed as a separate operational process.
 
-Repeat customers account for **{pct(stats['repeat_customer_share'])}** of identified customers and **{pct(stats['repeat_revenue_share'])}** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **{100-stats['customer_coverage']:.1f}%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not enough to justify loyalty investment without margin and cost data.
+Repeat customers—defined here as an observed `CustomerID` linked to more than one unique invoice—account for **{pct(stats['repeat_customer_share'])}** of identified customers and **{pct(stats['repeat_revenue_share'])}** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **{100-stats['customer_coverage']:.1f}%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not a retention or churn measure, and it is not enough to justify loyalty investment without margin and cost data.
 
 ### Action line: identify and reduce avoidable cancellations
 
@@ -352,6 +357,7 @@ def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT
     product = stats["product"]
     customer = stats["customer"]
     audit = stats["cancellation_audit"]
+    customer_expert = stats["customer_expert"]
     audit_monthly = audit["monthly"]
     audit_country = audit["country"]
     audit_product = audit["product"]
@@ -450,7 +456,7 @@ def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT
         ax2.grid(alpha=.25)
         caption(
             fig,
-            f"{customer_share_for_80:.1f}% de clientes identificados aporta 80%; falta CustomerID en {100-stats['customer_coverage']:.1f}% de filas.",
+            f"{customer_share_for_80:.1f}% de clientes identificados aporta 80%; CustomerID cubre {customer_expert['metrics']['gross_sales_customer_coverage_pct']:.1f}% de ventas brutas positivas.",
             0.085,
         )
         finish(pdf, fig)
