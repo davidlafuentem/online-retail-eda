@@ -61,13 +61,13 @@ tasks.md       checklist de implementación
 - Las cancelaciones no incluyen el motivo.
 - Las relaciones descriptivas no demuestran causalidad.
 
-Consulta el [resumen ejecutivo bilingüe](reports/executive_summary.md) para conocer los hallazgos y recomendaciones, y el [informe ejecutivo de prueba con interpretaciones](reports/executive_report_with_interpretations.pdf) para la entrega no técnica. Se conserva `reports/executive_report.pdf` como versión anterior de referencia.
+Consulta el [resumen ejecutivo bilingüe](reports/executive_summary.md) para conocer los hallazgos y recomendaciones, y el [informe ejecutivo experto](reports/executive_report_expert.pdf) para la entrega no técnica actual. Se conservan `reports/executive_report.pdf` y `reports/executive_report_with_interpretations.pdf` como versiones anteriores de referencia.
 
 ### Extensiones del nivel avanzado
 
 El análisis incorpora población de 2011 del [Banco Mundial](https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?date=2011&format=json&per_page=400) mediante `merge` para calcular ingresos por habitante. También incluye una media móvil de tres meses, una visualización interactiva con Plotly y reglas reutilizables en `src/cleaning.py`.
 
-Para regenerar el informe ejecutivo de prueba:
+Para regenerar el informe ejecutivo experto:
 
 ```bash
 cd src
@@ -133,14 +133,13 @@ The original grain is an invoice line. Sales and cancellations are analysed sepa
 - Cancellation reasons are not provided.
 - Descriptive relationships do not establish causality.
 
-See the [bilingual executive summary](reports/executive_summary.md) for findings and recommendations. The [executive proof PDF with chart interpretations](reports/executive_report_with_interpretations.pdf) is the current non-technical version; `reports/executive_report.pdf` is preserved as the previous reference version.
-The non-technical [executive report PDF](reports/executive_report.pdf) is also included.
+See the [bilingual executive summary](reports/executive_summary.md) for findings and recommendations. The [expert executive PDF](reports/executive_report_expert.pdf) is the current non-technical version; `reports/executive_report.pdf` and `reports/executive_report_with_interpretations.pdf` are preserved as previous reference versions.
 
 ### Advanced-level extensions
 
 The analysis enriches country results with 2011 population estimates from the [World Bank](https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?date=2011&format=json&per_page=400) through a documented merge. It also includes a justified three-month moving average, a Plotly interactive visualisation and reusable preparation rules in `src/cleaning.py`.
 
-To regenerate the executive proof report:
+To regenerate the expert executive report:
 
 ```bash
 cd src
