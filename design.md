@@ -20,7 +20,23 @@ The source contains invoice-line records. A row is not necessarily a complete or
 - `Revenue`: `Quantity * UnitPrice`.
 - `IsCancellation`: `InvoiceNo` starts with `C`.
 - `Year`, `Month`, `DayOfWeek` and `Hour` from `InvoiceDate`.
+- `Rolling3M`: three-month moving average of gross sales, used only to make the temporal trend easier to read.
+- `Country`: the source label `EIRE` is harmonised to `Ireland` in the analytical copy so it matches the external context source; the raw Excel remains unchanged.
 - `InvoicePrefix` or a similar documented field only if useful for quality checks.
+
+## KPI dictionary and populations
+
+The report uses distinct names for revenue measures that use different populations:
+
+| KPI | Definition | Population | Grain | Interpretation |
+|---|---|---|---|---|
+| Gross positive sales | Sum of `Revenue` | Not cancelled, `Quantity > 0`, `UnitPrice > 0` | Invoice line | Recorded positive sales before cancellations |
+| Cancelled value | Absolute sum of `Revenue` | `InvoiceNo` starts with `C` | Invoice line | Recorded cancellation value; not automatically a logistics cost |
+| Invoice cancellation rate | Cancelled unique invoices / all unique invoices | Invoice-level status: any `C` line marks the invoice | Invoice | Share of invoices affected by an identified cancellation |
+| Recorded balance — all lines | Sum of `Revenue` | All source rows | Invoice line | Descriptive balance including non-positive-price adjustments |
+| Net revenue — positive-price lines | Sum of `Revenue` | `UnitPrice > 0`, positive and negative quantities retained | Invoice line | Comparable commercial view used for product and country rankings |
+
+`Recorded balance — all lines` and `Net revenue — positive-price lines` must never be presented under the same generic label such as `NetRevenue`. Material KPIs are reconciled through direct totals and grouped totals before the executive report is generated.
 
 ## Cleaning policy
 
@@ -42,6 +58,17 @@ The source contains invoice-line records. A row is not necessarily a complete or
 5. Cancellation patterns.
 6. Customer coverage and repeat behaviour.
 7. Findings, recommendations and limitations.
+
+## Advanced-level extensions
+
+- Country revenue is enriched with 2011 population estimates from the World Bank API. The year is
+  aligned approximately with the Online Retail observation period, and unmatched labels are kept
+  visible rather than imputed.
+- Country revenue per inhabitant is used as a normalised comparison; it is descriptive and must not
+  be interpreted as profitability or customer spending.
+- Plotly is used for an interactive country comparison, while the three-month moving average is used
+  to show the underlying temporal pattern without replacing the original monthly values.
+- Reusable preparation rules live in `src/cleaning.py`.
 
 ## Reproducibility choice
 

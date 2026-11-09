@@ -37,4 +37,9 @@
 - [x] Add recommendations with evidence and limitations.
 - [x] Complete README and requirements.
 - [x] Execute the notebook from a clean kernel.
+- [x] Add World Bank population context and document the country merge.
+- [x] Add a justified three-month moving average transformation.
+- [x] Add an interactive Plotly country comparison.
+- [x] Extract reusable preparation functions to `src/cleaning.py`.
+- [x] Generate the project-specific executive report PDF.
 - [ ] Remove accidental outputs or sensitive/local files before publication.

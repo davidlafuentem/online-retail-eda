@@ -32,6 +32,31 @@ The audience is a non-technical business stakeholder and a data-analyst recruite
 - Conclusions must distinguish observed patterns, hypotheses and limitations.
 - Use English for code identifiers and Spanish or English consistently for the narrative; the final choice must be consistent throughout the notebook and README.
 
+### Executive-report chart standard
+
+Apply these rules to every chart included in an executive report or presentation:
+
+- The title must explain the business question or decision relevance, not only repeat a variable
+  name. A page heading is not a substitute for a title inside the chart.
+- Label both axes, including the unit and the aggregation grain where relevant: for example,
+  `Revenue (£ millions)`, `Cancellation rate (%)`, `Invoices (unique)` or `Month of invoice`.
+- Never leave scientific notation, unexplained decimals or ambiguous `k`/`M` scales on a chart
+  intended for a CEO, country manager or other non-technical reader. Format values explicitly as
+  £, £k, £M, units, invoices or percentages.
+- State the period, population and metric definition when they materially affect interpretation.
+  Distinguish gross sales, cancelled value, net recorded revenue and profit.
+- When comparing two measures over time, display both measures in the same figure when their units
+  are comparable, and quantify the apparent pattern in the accompanying text. Do not infer a cause
+  from visual co-movement.
+- Every chart must answer a management question: what should be monitored, decided, investigated or
+  changed? Replace decorative charts with a KPI, denominator, benchmark or action where possible.
+- Treat data-coverage charts as operational controls. If customer identifiers are incomplete,
+  explain both the information-quality risk and the limited commercial planning implication; do not
+  present incomplete customer coverage as a standalone growth opportunity.
+- Add an accompanying interpretation with the observed fact, decision relevance, limitation and
+  recommended next check. Recommendations should identify a reasonable action, owner or process,
+  time horizon and KPI when the available data supports it.
+
 ## Validation
 
 Before considering the project complete, verify:
@@ -62,6 +87,29 @@ business meaning, identifiers, causes or conclusions that the data cannot suppor
   nuisance to remove.
 - Distinguish observed facts, hypotheses and unresolved questions. Descriptive relationships do not
   establish causality.
+
+## Strict numerical certainty and cross-validation
+
+Every number presented in a notebook, report, dashboard or recommendation must be traceable to a
+documented definition, source column, analytical population and unit. Numerical correctness is not
+enough if two different populations are given the same KPI name.
+
+- Define every KPI before using it, including filters, denominator, aggregation grain and whether
+  it represents a line, invoice, customer, country, gross value, net recorded value or profit.
+- Use distinct names for distinct populations. For example, do not call both `sum(Revenue)` across
+  all rows and `sum(Revenue)` after a positive-price filter `NetRevenue` without qualification.
+- Before publication, cross-check important metrics through at least two independent routes where
+  practical: direct aggregation versus grouped totals, report values versus notebook values, and
+  source-row totals versus derived monthly/country/product totals.
+- Add automated reconciliation checks for material KPIs. A failed check must stop report generation,
+  not be hidden or rounded away.
+- Investigate every discrepancy, even when it is caused by a legitimate population difference.
+  Either unify the population or give the metrics different names and explain the difference next to
+  the result.
+- Never present a rounded value as more precise than its source or imply that a descriptive revenue
+  metric is profit when costs and margins are unavailable.
+- Preserve a KPI dictionary in the analytical design or report so another analyst can reproduce and
+  challenge each published number.
 
 ## Reusable EDA structure
 

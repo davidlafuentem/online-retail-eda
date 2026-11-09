@@ -31,7 +31,7 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-Abre `notebooks/01_online_retail_eda.ipynb` y ejecuta las celdas de principio a fin. En Google Colab, sube `Online Retail.xlsx` al runtime; el notebook buscará `/content/Online Retail.xlsx`.
+Abre `notebooks/01_online_retail_eda.ipynb` y ejecuta las celdas de principio a fin. En Google Colab, sube `Online Retail.xlsx` y la carpeta `src/` al runtime; el notebook buscará `/content/Online Retail.xlsx`.
 
 ### Alcance
 
@@ -45,6 +45,7 @@ La unidad original es una línea de factura. Las ventas y las cancelaciones se a
 dataset/       fuente local y datos de trabajo (no versionados)
 notebooks/     notebook de análisis
 reports/       resumen ejecutivo
+src/           reglas reutilizables y generación del informe
 specs/         especificación OpenSpec
 proposal.md    propuesta del proyecto
 design.md      diseño analítico y política de limpieza
@@ -59,7 +60,18 @@ tasks.md       checklist de implementación
 - Las cancelaciones no incluyen el motivo.
 - Las relaciones descriptivas no demuestran causalidad.
 
-Consulta el [resumen ejecutivo bilingüe](reports/executive_summary.md) para conocer los hallazgos y recomendaciones.
+Consulta el [resumen ejecutivo bilingüe](reports/executive_summary.md) para conocer los hallazgos y recomendaciones, y el [informe ejecutivo de prueba con interpretaciones](reports/executive_report_with_interpretations.pdf) para la entrega no técnica. Se conserva `reports/executive_report.pdf` como versión anterior de referencia.
+
+### Extensiones del nivel avanzado
+
+El análisis incorpora población de 2011 del [Banco Mundial](https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?date=2011&format=json&per_page=400) mediante `merge` para calcular ingresos por habitante. También incluye una media móvil de tres meses, una visualización interactiva con Plotly y reglas reutilizables en `src/cleaning.py`.
+
+Para regenerar el informe ejecutivo de prueba:
+
+```bash
+cd src
+../.venv/bin/python create_executive_pdf.py
+```
 
 ### Asistencia de IA
 
@@ -104,7 +116,7 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-Open `notebooks/01_online_retail_eda.ipynb` and run it from top to bottom. In Google Colab, upload `Online Retail.xlsx` to the runtime; the notebook will look for `/content/Online Retail.xlsx`.
+Open `notebooks/01_online_retail_eda.ipynb` and run it from top to bottom. In Google Colab, upload `Online Retail.xlsx` and the `src/` directory to the runtime; the notebook will look for `/content/Online Retail.xlsx`.
 
 ### Scope
 
@@ -120,7 +132,19 @@ The original grain is an invoice line. Sales and cancellations are analysed sepa
 - Cancellation reasons are not provided.
 - Descriptive relationships do not establish causality.
 
-See the [bilingual executive summary](reports/executive_summary.md) for findings and recommendations.
+See the [bilingual executive summary](reports/executive_summary.md) for findings and recommendations. The [executive proof PDF with chart interpretations](reports/executive_report_with_interpretations.pdf) is the current non-technical version; `reports/executive_report.pdf` is preserved as the previous reference version.
+The non-technical [executive report PDF](reports/executive_report.pdf) is also included.
+
+### Advanced-level extensions
+
+The analysis enriches country results with 2011 population estimates from the [World Bank](https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?date=2011&format=json&per_page=400) through a documented merge. It also includes a justified three-month moving average, a Plotly interactive visualisation and reusable preparation rules in `src/cleaning.py`.
+
+To regenerate the executive proof report:
+
+```bash
+cd src
+../.venv/bin/python create_executive_pdf.py
+```
 
 ### AI assistance
 
