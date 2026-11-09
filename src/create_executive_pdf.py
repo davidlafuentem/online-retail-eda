@@ -11,11 +11,15 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
 
 from cleaning import prepare_transaction_data
+from cancellation_analysis import cancellation_audit
+from country_analysis import country_performance
+from customer_analysis import customer_performance
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "dataset" / "Online Retail.xlsx"
 PDF_OUTPUT = ROOT / "reports" / "executive_report_with_interpretations.pdf"
+EXPERT_PDF_OUTPUT = ROOT / "reports" / "executive_report_expert.pdf"
 MD_OUTPUT = ROOT / "reports" / "executive_summary.md"
 BLUE = "#17365D"
 MID_BLUE = "#4472C4"
@@ -108,6 +112,9 @@ def base_data() -> dict[str, object]:
     # These are descriptive checks across only 13 months; they are not a causal model.
     monthly_pearson = monthly["GrossRevenue"].corr(monthly["CancellationValue"])
     monthly_spearman = monthly["GrossRevenue"].rank().corr(monthly["CancellationValue"].rank())
+    audit = cancellation_audit(data)
+    country_expert = country_performance(data, minimum_invoices=20)
+    customer_expert = customer_performance(data)
     # Product rankings use net lines and exclude operational concepts already
     # documented in the notebook (postage, discounts, fees and samples).
     non_merchandise_codes = {
@@ -162,6 +169,9 @@ def base_data() -> dict[str, object]:
         "peak_cancellation_share": monthly["CancellationSharePct"].max(),
         "best_month": monthly.loc[monthly["GrossRevenue"].idxmax()],
         "worst_month": monthly.loc[monthly["GrossRevenue"].idxmin()],
+        "cancellation_audit": audit,
+        "country_expert": country_expert,
+        "customer_expert": customer_expert,
     }
 
 
@@ -189,6 +199,9 @@ def generate_markdown(stats: dict[str, object]) -> None:
     sales = stats["sales"]
     cancellations = stats["cancellations"]
     monthly = stats["monthly"]
+    audit = stats["cancellation_audit"]
+    country_expert = stats["country_expert"]
+    customer_expert = stats["customer_expert"]
     product = stats["product"]
     country = stats["country"]
     best = stats["best_month"]
@@ -196,6 +209,19 @@ def generate_markdown(stats: dict[str, object]) -> None:
     period = f"{data['InvoiceDate'].min():%B %Y}–{data['InvoiceDate'].max():%B %Y}"
     top_countries = country.head(5)
     top_products = product.head(5)
+    audit_monthly = audit["monthly"]
+    audit_country = audit["country"]
+    audit_product = audit["product"]
+    audit_operational = audit["operational"]
+    operational_share = audit_operational.loc[
+        audit_operational["IsOperationalConcept"], "CancelledValueSharePct"
+    ].iloc[0]
+    comparable_country = audit_country.loc[audit_country["ComparableExposure"]]
+    top_cancel_country = comparable_country.sort_values("CancelledValue", ascending=False).iloc[0]
+    top_cancel_product = audit_product.iloc[0]
+    comparable_country_expert = country_expert.loc[country_expert["ComparableExposure"]]
+    highest_country_rate = comparable_country_expert.sort_values("InvoiceCancellationRatePct", ascending=False).iloc[0]
+    customer_metrics = customer_expert["metrics"]
     md = f"""# Informe ejecutivo — Online Retail EDA
 
 ## 1. Lectura para gerencia
@@ -228,17 +254,25 @@ La correlación mensual entre ventas brutas y valor cancelado es **{stats['month
 
 Se identifican {len(cancellations):,} líneas de cancelación y {stats['cancelled_invoices']:,} facturas afectadas. El valor cancelado equivale al **{stats['cancelled']/stats['gross']*100:.1f}%** de las ventas brutas positivas. Esta magnitud debe revisarse junto con devoluciones, reversiones y posibles ajustes administrativos antes de usar ingresos para objetivos o previsiones.
 
+### Diagnóstico experto de exposición
+
+La tasa mensual de facturas afectadas oscila entre **{audit_monthly['InvoiceCancellationRatePct'].min():.1f}%** y **{audit_monthly['InvoiceCancellationRatePct'].max():.1f}%**, mientras que el valor cancelado sobre ventas brutas oscila entre **{audit_monthly['CancellationValueRatePct'].min():.1f}%** y **{audit_monthly['CancellationValueRatePct'].max():.1f}%**. Diciembre de 2011 alcanza el máximo monetario relativo, pero termina el día 9 y no es directamente comparable con meses completos. La existencia de una tasa recurrente no demuestra que sea una tasa normal o aceptable.
+
+El **{operational_share:.1f}%** del valor cancelado identificado corresponde a códigos clasificados como conceptos operativos, no a productos físicos. Esta clasificación no revela la causa, pero demuestra que no es riguroso interpretar todo el importe como devolución de cliente. En países con al menos 20 facturas, **{top_cancel_country['Country']}** presenta el mayor valor cancelado (**{money(top_cancel_country['CancelledValue'])}**) entre los mercados comparables; los países pequeños deben analizarse con cautela por su denominador.
+
+El producto físico con mayor valor cancelado identificado es **{top_cancel_product['Description']}** ({money(top_cancel_product['CancelledValue'])}). Su tasa debe investigarse junto con el número de facturas y el contexto de la operación; no prueba por sí sola un problema general de producto o una preferencia negativa del cliente.
+
 ### Línea de actuación: descubrir y reducir cancelaciones evitables
 
-Las cancelaciones pueden ser una palanca de mejora del resultado económico, pero el dataset no identifica sus causas ni confirma sus costes logísticos. El prefijo `C` tampoco demuestra que todas sean devoluciones de clientes. Antes de endurecer la política de devoluciones, la empresa debería clasificar los casos por motivo: devolución, error de pedido, falta de stock, precio, entrega o ajuste administrativo.
+Reducir las cancelaciones evitables puede mejorar la contribución económica al disminuir trabajo administrativo, costes logísticos y pérdida de ventas, pero el dataset no demuestra todavía el importe de esos costes. El prefijo `C` tampoco demuestra que todas sean devoluciones de clientes. Antes de endurecer la política de devoluciones, la empresa debería clasificar los casos por motivo: devolución, error de pedido, falta de stock, precio, entrega o ajuste administrativo.
 
-La prioridad inicial debería ser corregir causas operativas evitables —stock, precios, descripciones, preparación y entrega— sin deteriorar la confianza del cliente. Cualquier cambio en la política de devoluciones debe respetar la normativa, probarse de forma controlada y evaluarse con ventas, conversión, reclamaciones, repetición de compra, costes logísticos y margen. El objetivo no es minimizar cancelaciones a cualquier coste, sino mejorar la contribución económica y la relación a largo plazo con el cliente.
+La prioridad inicial debería ser entender qué ocurre y corregir causas operativas evitables —stock, precios, descripciones, preparación y entrega— sin deteriorar la confianza del cliente. Los casos claros y repetitivos pueden automatizarse para reducir fricción y backoffice sin impedir derechos legítimos. Cualquier cambio en la política de devoluciones debe respetar la normativa, probarse de forma controlada y evaluarse con ventas, conversión, reclamaciones, repetición de compra, costes logísticos y margen. El objetivo no es minimizar cancelaciones a cualquier coste, sino reducir coste y fricción manteniendo la relación a largo plazo con el cliente.
 
 ## 4. Clientes y concentración de valor
 
-Los clientes recurrentes representan el **{pct(stats['repeat_customer_share'])}** de los clientes identificados y concentran el **{pct(stats['repeat_revenue_share'])}** del ingreso dentro de esa población. No puede extrapolarse a las filas sin `CustomerID`: falta ese identificador en el **{100-stats['customer_coverage']:.1f}%** de las filas.
+Los clientes recurrentes —definidos aquí como `CustomerID` asociado a más de una factura única— representan el **{pct(stats['repeat_customer_share'])}** de los clientes identificados y concentran el **{pct(stats['repeat_revenue_share'])}** del ingreso dentro de esa población. `CustomerID` está disponible en el **{stats['customer_coverage']:.1f}%** de las filas, pero cubre el **{customer_metrics['gross_sales_customer_coverage_pct']:.1f}%** de las ventas brutas positivas; ambas coberturas deben distinguirse. No puede extrapolarse la concentración identificada a las filas sin identificador.
 
-Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
+Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. La cobertura de `CustomerID` en las líneas de cancelación es del **{customer_metrics['cancellation_row_customer_coverage_pct']:.1f}%**, pero esto no revela el motivo de esas cancelaciones. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
 
 ## 5. Productos y mercados
 
@@ -249,6 +283,8 @@ Los cinco países con mayor **ingreso neto de líneas con precio positivo** son:
 """ + "\n".join(f"- **{row.Country}:** {money(row.Revenue)} en {int(row.Invoices):,} facturas" for row in top_countries.itertuples()) + f"""
 
 El Reino Unido representa el **{pct(stats['uk_share'])}** del ingreso neto de líneas con precio positivo. Las comparaciones internacionales deben incorporar facturas, cancelaciones, costes logísticos y margen; el ingreso por habitante solo aporta contexto y no mide cuota de mercado.
+
+La matriz país prioriza exposición observada, no oportunidad de mercado: entre países con al menos 20 facturas, **{highest_country_rate['Country']}** presenta la mayor tasa de facturas afectadas (**{highest_country_rate['InvoiceCancellationRatePct']:.1f}%**), mientras que Reino Unido concentra el mayor impacto absoluto por su volumen. Ninguna de estas señales identifica una causa ni justifica expansión o retirada sin costes, tamaño de mercado y motivos de cancelación.
 
 ## 6. Prioridades de gestión
 
@@ -289,13 +325,13 @@ The business shows substantial recorded activity, but management interpretation 
 
 Gross sales peak in **{best['Month']}** ({money(best['GrossRevenue'])}) and reach their minimum in **{worst['Month']}** ({money(worst['GrossRevenue'])}). The monthly Pearson correlation between gross sales and cancelled value is **{stats['monthly_pearson']:.2f}**, and the rank correlation is **{stats['monthly_spearman']:.2f}**, based on only 13 months. This does not show a stable co-movement that can forecast cancellations from sales; cancellation control should be managed as a separate operational process.
 
-Repeat customers account for **{pct(stats['repeat_customer_share'])}** of identified customers and **{pct(stats['repeat_revenue_share'])}** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **{100-stats['customer_coverage']:.1f}%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not enough to justify loyalty investment without margin and cost data.
+Repeat customers—defined here as an observed `CustomerID` linked to more than one unique invoice—account for **{pct(stats['repeat_customer_share'])}** of identified customers and **{pct(stats['repeat_revenue_share'])}** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **{100-stats['customer_coverage']:.1f}%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not a retention or churn measure, and it is not enough to justify loyalty investment without margin and cost data.
 
 ### Action line: identify and reduce avoidable cancellations
 
-Cancellations may be a lever for improving economic results, but the dataset does not identify their causes or confirm their logistics costs. The `C` prefix does not prove that every case is a customer return. Before tightening the returns policy, the business should classify cases by reason: return, order error, stock issue, price, delivery or administrative adjustment.
+Cancelling avoidable transactions may improve contribution by reducing administrative work, logistics costs and lost sales, but the dataset does not yet quantify those costs. The `C` prefix does not prove that every case is a customer return. Before tightening the returns policy, the business should classify cases by reason: return, order error, stock issue, price, delivery or administrative adjustment.
 
-The first priority should be correcting avoidable operational causes—stock, prices, descriptions, fulfilment and delivery—without damaging customer trust. Any returns-policy change should comply with applicable law, be tested in a controlled pilot and be evaluated using sales, conversion, complaints, repeat purchase, logistics cost and margin. The objective is not to minimise cancellations at any cost, but to improve contribution and long-term customer relationships.
+The first priority should be understanding and correcting avoidable operational causes—stock, prices, descriptions, fulfilment and delivery—without damaging customer trust. Clear, repetitive cases may be automated to reduce friction and back-office work without restricting legitimate rights. Any returns-policy change should comply with applicable law, be tested in a controlled pilot and be evaluated using sales, conversion, complaints, repeat purchase, logistics cost and margin. The objective is not to minimise cancellations at any cost, but to reduce cost and friction while protecting long-term customer relationships.
 
 ### Priorities
 
@@ -314,13 +350,20 @@ The first priority should be correcting avoidable operational causes—stock, pr
     MD_OUTPUT.write_text(md, encoding="utf-8")
 
 
-def generate_pdf(stats: dict[str, object]) -> None:
+def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT) -> None:
     data = stats["data"]
     monthly = stats["monthly"]
     country = stats["country"]
+    country_expert = stats["country_expert"]
     product = stats["product"]
     customer = stats["customer"]
-    with PdfPages(PDF_OUTPUT) as pdf:
+    audit = stats["cancellation_audit"]
+    customer_expert = stats["customer_expert"]
+    audit_monthly = audit["monthly"]
+    audit_country = audit["country"]
+    audit_product = audit["product"]
+    audit_operational = audit["operational"]
+    with PdfPages(output_path) as pdf:
         # 1. Dashboard
         fig, _ = page(pdf, "Online Retail EDA", "Informe ejecutivo · situación comercial, evolución y prioridades")
         fig.text(0.07, 0.875, "Situación actual", fontsize=12, weight="bold", color=MID_BLUE)
@@ -335,7 +378,7 @@ def generate_pdf(stats: dict[str, object]) -> None:
         bullets = [
             f"El valor cancelado equivale al {stats['cancelled']/stats['gross']*100:.1f}% de las ventas brutas positivas; el {stats['cancel_rate']:.1f}% de las facturas contiene alguna cancelación.",
             f"El Reino Unido aporta {stats['uk_share']:.1f}% del ingreso neto de líneas con precio positivo: existe dependencia de un mercado principal.",
-            f"Los clientes recurrentes concentran {stats['repeat_revenue_share']:.1f}% del ingreso identificado, pero CustomerID solo cubre {stats['customer_coverage']:.1f}% de las filas.",
+            f"Los clientes con más de una factura concentran {stats['repeat_revenue_share']:.1f}% del ingreso identificado, pero CustomerID solo cubre {stats['customer_coverage']:.1f}% de las filas.",
             "La facturación no permite conocer beneficio sin costes, margen y gastos logísticos.",
         ]
         for i, text in enumerate(bullets):
@@ -414,7 +457,7 @@ def generate_pdf(stats: dict[str, object]) -> None:
         ax2.grid(alpha=.25)
         caption(
             fig,
-            f"{customer_share_for_80:.1f}% de clientes identificados aporta 80%; falta CustomerID en {100-stats['customer_coverage']:.1f}% de filas.",
+            f"{customer_share_for_80:.1f}% de clientes identificados aporta 80%; CustomerID cubre {customer_expert['metrics']['gross_sales_customer_coverage_pct']:.1f}% de ventas brutas positivas.",
             0.085,
         )
         finish(pdf, fig)
@@ -448,11 +491,190 @@ def generate_pdf(stats: dict[str, object]) -> None:
         )
         finish(pdf, fig)
 
-        # 5. Decisions and limitations, no chart overload.
-        fig, _ = page(pdf, "4 · Prioridades para la dirección", "Qué decisiones están respaldadas por los datos y cuáles requieren información adicional")
+        # 5. Expert country exposure matrix.
+        fig, _ = page(
+            pdf,
+            "4 · Matriz experta de países",
+            "Dónde priorizar investigación combinando peso económico y exposición a cancelaciones",
+        )
+        fig.text(
+            0.10,
+            0.885,
+            "Países con ≥20 facturas · tamaño = valor cancelado · color = señal relativa de exposición.",
+            fontsize=8.5,
+            color=GREY,
+        )
+        ax1 = fig.add_axes([0.12, 0.28, 0.76, 0.48])
+        comparable_expert = country_expert.loc[country_expert["ComparableExposure"]].copy()
+        exposure_colors = {
+            "Above-average cancellation exposure": RED,
+            "Below-average cancellation exposure": GREEN,
+            "Mixed cancellation signals": "#ED7D31",
+        }
+        point_colors = comparable_expert["ExposureClass"].map(exposure_colors).fillna("#ED7D31")
+        point_sizes = 60 + comparable_expert["CancelledValue"] / comparable_expert["CancelledValue"].max() * 700
+        ax1.scatter(
+            comparable_expert["NetRevenuePositivePriceLines"],
+            comparable_expert["InvoiceCancellationRatePct"],
+            s=point_sizes,
+            c=point_colors,
+            alpha=.75,
+            edgecolor="white",
+            linewidth=.7,
+        )
+        labelled_countries = {"United Kingdom", "Japan", "Germany", "Netherlands", "Ireland"}
+        for row in comparable_expert.itertuples():
+            if row.Country not in labelled_countries:
+                continue
+            label = "UK" if row.Country == "United Kingdom" else str(row.Country)
+            ax1.annotate(label, (row.NetRevenuePositivePriceLines, row.InvoiceCancellationRatePct), fontsize=6.5, xytext=(3, 3), textcoords="offset points")
+        ax1.set_xscale("log")
+        ax1.set_xlabel("Ingreso neto — líneas con precio positivo (£, escala logarítmica)")
+        ax1.set_ylabel("Facturas afectadas (%)")
+        ax1.set_title("Peso económico y exposición operativa por país", loc="left", weight="bold")
+        ax1.grid(alpha=.25)
+        for label, color in exposure_colors.items():
+            ax1.scatter([], [], s=70, color=color, label=label)
+        ax1.legend().remove()
+        fig.text(
+            0.13,
+            0.785,
+            "Color: rojo = ambas tasas altas · verde = ambas bajas · naranja = señales mixtas",
+            fontsize=7.5,
+            color=GREY,
+        )
+        caption(
+            fig,
+            "prioriza investigación; no mide cuota, margen ni causa.",
+            0.15,
+        )
+        finish(pdf, fig)
+
+        # 6. Identified-customer concentration and priority accounts.
+        fig, _ = page(
+            pdf,
+            "5 · Clientes identificados",
+            "Concentración del ingreso observado y cuentas que requieren continuidad de servicio",
+        )
+        customer_metrics = customer_expert["metrics"]
+        fig.text(
+            0.10,
+            0.885,
+            f"{customer_metrics['identified_customer_count']:,} clientes identificados · {customer_metrics['gross_sales_customer_coverage_pct']:.1f}% de ventas brutas positivas cubiertas por CustomerID.",
+            fontsize=8.5,
+            color=GREY,
+        )
+        ax1 = fig.add_axes([0.28, 0.52, 0.62, 0.27])
+        top_customers = customer_expert["customers"].head(10).copy().sort_values("Revenue")
+        top_customers["CustomerRank"] = np.arange(len(top_customers), 0, -1)
+        labels = [f"Cliente {rank}" for rank in top_customers["CustomerRank"]]
+        ax1.barh(labels, top_customers["Revenue"], color=GREEN)
+        ax1.set_xlabel("Ingreso bruto positivo (£)")
+        ax1.set_ylabel("Ranking por ingreso")
+        ax1.set_title("Top 10 clientes identificados por ingreso", loc="left", weight="bold")
+        ax1.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"£{value / 1000:.0f}k"))
+        ax1.grid(axis="x", alpha=.25)
+        ax1.tick_params(axis="y", labelsize=8)
+        caption(
+            fig,
+            "el ranking ayuda a localizar cuentas prioritarias, pero no prueba rentabilidad ni permite medir retención con este dataset.",
+            0.43,
+        )
+        ax2 = fig.add_axes([0.12, 0.14, 0.76, 0.20])
+        customer_sorted = customer_expert["customers"].sort_values("Revenue", ascending=False)
+        cumulative = customer_sorted["Revenue"].cumsum() / customer_sorted["Revenue"].sum() * 100
+        customer_share = np.arange(1, len(cumulative) + 1) / len(cumulative) * 100
+        ax2.plot(customer_share, cumulative, color=GREEN)
+        ax2.axhline(80, linestyle="--", color=GREY, linewidth=1, label="80% del ingreso")
+        ax2.axvline(customer_metrics["customers_for_80_share_pct"], linestyle=":", color=GREY, linewidth=1)
+        ax2.set_xlabel("Porcentaje acumulado de clientes identificados (ordenados por ingreso)")
+        ax2.set_ylabel("Ingreso acumulado (%)")
+        ax2.set_title("Concentración acumulada del ingreso identificado", loc="left", weight="bold", fontsize=10)
+        ax2.legend(frameon=False, fontsize=7)
+        ax2.grid(alpha=.25)
+        caption(
+            fig,
+            f"{customer_metrics['customers_for_80_share_pct']:.1f}% de los clientes identificados aporta 80% del ingreso identificado; no se extrapola a filas sin CustomerID.",
+            0.075,
+        )
+        finish(pdf, fig)
+
+        # 7. Expert cancellation audit.
+        fig, _ = page(
+            pdf,
+            "6 · Diagnóstico experto de cancelaciones",
+            "Exposición por tiempo, país y producto; la clasificación C no demuestra una devolución",
+        )
+        fig.text(
+            0.10,
+            0.885,
+            f"Valor cancelado identificado: {money(stats['cancelled'])} · {audit_operational.loc[audit_operational['IsOperationalConcept'], 'CancelledValueSharePct'].iloc[0]:.1f}% corresponde a códigos operativos.",
+            fontsize=8.5,
+            color=GREY,
+        )
+        ax1 = fig.add_axes([0.10, 0.57, 0.82, 0.24])
+        ax1.plot(
+            audit_monthly["Month"],
+            audit_monthly["InvoiceCancellationRatePct"],
+            marker="o",
+            color=RED,
+            label="Facturas afectadas (%)",
+        )
+        ax1.plot(
+            audit_monthly["Month"],
+            audit_monthly["CancellationValueRatePct"],
+            marker="o",
+            color="#ED7D31",
+            label="Valor cancelado / ventas (%)",
+        )
+        ax1.set_xlabel("Mes de la factura")
+        ax1.set_ylabel("Tasa (%)")
+        ax1.set_title("La extensión y el impacto económico de las cancelaciones no son lo mismo", loc="left", weight="bold")
+        ax1.set_ylim(bottom=0)
+        ax1.tick_params(axis="x", rotation=65, labelsize=7)
+        ax1.grid(axis="y", alpha=.25)
+        ax1.legend(frameon=False, fontsize=8)
+        peak_value_month = audit_monthly.loc[audit_monthly["CancellationValueRatePct"].idxmax(), "Month"]
+        caption(
+            fig,
+            f"tasa de facturas afectadas; impacto monetario máximo en {peak_value_month}. Diciembre es incompleto.",
+            0.485,
+        )
+
+        ax2 = fig.add_axes([0.18, 0.18, 0.29, 0.22])
+        comparable = audit_country.loc[audit_country["ComparableExposure"]].copy()
+        comparable = comparable.sort_values("CancelledValue", ascending=False).head(12).sort_values("InvoiceCancellationRatePct")
+        comparable["CountryDisplay"] = comparable["Country"].replace({"United Kingdom": "UK"})
+        ax2.barh(comparable["CountryDisplay"], comparable["InvoiceCancellationRatePct"], color=RED)
+        ax2.set_xlabel("Facturas afectadas (%)")
+        ax2.set_ylabel("País · mínimo 20 facturas")
+        ax2.set_title("Tasa por factura y exposición suficiente", loc="left", weight="bold", fontsize=10)
+        ax2.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:.0f}%"))
+        ax2.tick_params(axis="y", labelsize=7)
+        ax2.grid(axis="x", alpha=.25)
+
+        ax3 = fig.add_axes([0.64, 0.18, 0.28, 0.22])
+        physical_products = audit_product.head(8).sort_values("CancelledValue")
+        physical_products["DescriptionDisplay"] = physical_products["Description"].astype(str).str[:17]
+        ax3.barh(physical_products["DescriptionDisplay"], physical_products["CancelledValue"], color=RED)
+        ax3.set_xlabel("Valor cancelado identificado (£)")
+        ax3.set_ylabel("Producto físico")
+        ax3.set_title("Top físicos por cancelado", loc="left", weight="bold", fontsize=10)
+        ax3.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"£{value / 1000:.0f}k"))
+        ax3.tick_params(axis="y", labelsize=6.5)
+        ax3.grid(axis="x", alpha=.25)
+        caption(
+            fig,
+            "países pequeños: tasas inestables. Productos extremos y códigos operativos requieren investigar causas.",
+            0.085,
+        )
+        finish(pdf, fig)
+
+        # 8. Decisions and limitations, no chart overload.
+        fig, _ = page(pdf, "7 · Prioridades para la dirección", "Qué decisiones están respaldadas por los datos y cuáles requieren información adicional")
         sections = [
-            ("Actuar en 0–30 días", ["Finanzas y Operaciones: conciliar ventas y cancelaciones semanalmente; KPI: valor cancelado/ventas y tasa de facturas afectadas.", "Operaciones y Atención al Cliente: clasificar el motivo de cada cancelación antes de cambiar la política de devoluciones.", "Operaciones y CRM: mejorar la captura de CustomerID; KPI: cobertura de filas identificadas."]),
-            ("Decidir en 30–90 días", ["Comercial y Supply: revisar referencias de mayor ingreso con disponibilidad y margen.", "Dirección Comercial: comparar países con ingreso, facturas, cancelaciones, logística y rentabilidad.", "Legal y Atención al Cliente: pilotar cambios limitados en devoluciones solo con métricas de conversión, reclamaciones, repetición y margen."]),
+            ("Actuar en 0–30 días", ["Finanzas y Operaciones: conciliar ventas y cancelaciones semanalmente; KPI: valor cancelado/ventas y tasa de facturas afectadas.", "Operaciones y Atención al Cliente: clasificar el motivo de cada cancelación y automatizar casos claros y repetitivos.", "Operaciones y CRM: mejorar la captura de CustomerID; KPI: cobertura de filas identificadas."]),
+            ("Decidir en 30–90 días", ["Comercial y Supply: revisar referencias de mayor ingreso y casos extremos de cancelación con disponibilidad y margen.", "Dirección Comercial: comparar países con ingreso, facturas, cancelaciones, logística y rentabilidad.", "Legal y Atención al Cliente: pilotar cambios limitados en devoluciones solo con métricas de conversión, reclamaciones, repetición, coste y margen."]),
             ("Información que falta", ["Coste y margen por producto y país.", "Motivo de cancelación, devolución o ajuste.", "Gastos logísticos, campañas, stock y canales de adquisición."]),
         ]
         y = 0.83
@@ -464,7 +686,7 @@ def generate_pdf(stats: dict[str, object]) -> None:
                 fig.text(0.14, y, item, fontsize=10, wrap=True)
                 y -= 0.055
             y -= 0.045
-        fig.text(0.09, 0.10, "Conclusión: el negocio tiene actividad y concentración suficientes para priorizar conciliación, clientes y margen; el dataset no permite atribuir causas ni calcular rentabilidad.", fontsize=10, weight="bold", color=BLUE, wrap=True)
+        fig.text(0.09, 0.10, "Conclusión: reducir cancelaciones evitables puede mejorar la contribución, pero primero hay que medir causas y costes; el dataset no permite atribuir causas ni calcular rentabilidad.", fontsize=10, weight="bold", color=BLUE, wrap=True)
         finish(pdf, fig)
 
 
@@ -472,8 +694,8 @@ def main() -> None:
     stats = base_data()
     PDF_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     generate_markdown(stats)
-    generate_pdf(stats)
-    print(f"Generated {PDF_OUTPUT}")
+    generate_pdf(stats, EXPERT_PDF_OUTPUT)
+    print(f"Generated {EXPERT_PDF_OUTPUT}")
     print(f"Generated {MD_OUTPUT}")
 
 

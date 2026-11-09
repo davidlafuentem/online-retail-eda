@@ -30,17 +30,25 @@ La correlación mensual entre ventas brutas y valor cancelado es **-0.13** (Pear
 
 Se identifican 9,288 líneas de cancelación y 3,836 facturas afectadas. El valor cancelado equivale al **8.4%** de las ventas brutas positivas. Esta magnitud debe revisarse junto con devoluciones, reversiones y posibles ajustes administrativos antes de usar ingresos para objetivos o previsiones.
 
+### Diagnóstico experto de exposición
+
+La tasa mensual de facturas afectadas oscila entre **12.7%** y **17.6%**, mientras que el valor cancelado sobre ventas brutas oscila entre **3.2%** y **32.1%**. Diciembre de 2011 alcanza el máximo monetario relativo, pero termina el día 9 y no es directamente comparable con meses completos. La existencia de una tasa recurrente no demuestra que sea una tasa normal o aceptable.
+
+El **46.6%** del valor cancelado identificado corresponde a códigos clasificados como conceptos operativos, no a productos físicos. Esta clasificación no revela la causa, pero demuestra que no es riguroso interpretar todo el importe como devolución de cliente. En países con al menos 20 facturas, **United Kingdom** presenta el mayor valor cancelado (**£815,292**) entre los mercados comparables; los países pequeños deben analizarse con cautela por su denominador.
+
+El producto físico con mayor valor cancelado identificado es **PAPER CRAFT , LITTLE BIRDIE** (£168,470). Su tasa debe investigarse junto con el número de facturas y el contexto de la operación; no prueba por sí sola un problema general de producto o una preferencia negativa del cliente.
+
 ### Línea de actuación: descubrir y reducir cancelaciones evitables
 
-Las cancelaciones pueden ser una palanca de mejora del resultado económico, pero el dataset no identifica sus causas ni confirma sus costes logísticos. El prefijo `C` tampoco demuestra que todas sean devoluciones de clientes. Antes de endurecer la política de devoluciones, la empresa debería clasificar los casos por motivo: devolución, error de pedido, falta de stock, precio, entrega o ajuste administrativo.
+Reducir las cancelaciones evitables puede mejorar la contribución económica al disminuir trabajo administrativo, costes logísticos y pérdida de ventas, pero el dataset no demuestra todavía el importe de esos costes. El prefijo `C` tampoco demuestra que todas sean devoluciones de clientes. Antes de endurecer la política de devoluciones, la empresa debería clasificar los casos por motivo: devolución, error de pedido, falta de stock, precio, entrega o ajuste administrativo.
 
-La prioridad inicial debería ser corregir causas operativas evitables —stock, precios, descripciones, preparación y entrega— sin deteriorar la confianza del cliente. Cualquier cambio en la política de devoluciones debe respetar la normativa, probarse de forma controlada y evaluarse con ventas, conversión, reclamaciones, repetición de compra, costes logísticos y margen. El objetivo no es minimizar cancelaciones a cualquier coste, sino mejorar la contribución económica y la relación a largo plazo con el cliente.
+La prioridad inicial debería ser entender qué ocurre y corregir causas operativas evitables —stock, precios, descripciones, preparación y entrega— sin deteriorar la confianza del cliente. Los casos claros y repetitivos pueden automatizarse para reducir fricción y backoffice sin impedir derechos legítimos. Cualquier cambio en la política de devoluciones debe respetar la normativa, probarse de forma controlada y evaluarse con ventas, conversión, reclamaciones, repetición de compra, costes logísticos y margen. El objetivo no es minimizar cancelaciones a cualquier coste, sino reducir coste y fricción manteniendo la relación a largo plazo con el cliente.
 
 ## 4. Clientes y concentración de valor
 
-Los clientes recurrentes representan el **65.6%** de los clientes identificados y concentran el **93.1%** del ingreso dentro de esa población. No puede extrapolarse a las filas sin `CustomerID`: falta ese identificador en el **24.9%** de las filas.
+Los clientes recurrentes —definidos aquí como `CustomerID` asociado a más de una factura única— representan el **65.6%** de los clientes identificados y concentran el **93.1%** del ingreso dentro de esa población. `CustomerID` está disponible en el **75.1%** de las filas, pero cubre el **83.5%** de las ventas brutas positivas; ambas coberturas deben distinguirse. No puede extrapolarse la concentración identificada a las filas sin identificador.
 
-Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
+Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. La cobertura de `CustomerID` en las líneas de cancelación es del **95.9%**, pero esto no revela el motivo de esas cancelaciones. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
 
 ## 5. Productos y mercados
 
@@ -55,6 +63,8 @@ Los cinco países con mayor **ingreso neto de líneas con precio positivo** son:
 - **France:** £197,404 en 461 facturas
 
 El Reino Unido representa el **84.0%** del ingreso neto de líneas con precio positivo. Las comparaciones internacionales deben incorporar facturas, cancelaciones, costes logísticos y margen; el ingreso por habitante solo aporta contexto y no mide cuota de mercado.
+
+La matriz país prioriza exposición observada, no oportunidad de mercado: entre países con al menos 20 facturas, **Japan** presenta la mayor tasa de facturas afectadas (**32.1%**), mientras que Reino Unido concentra el mayor impacto absoluto por su volumen. Ninguna de estas señales identifica una causa ni justifica expansión o retirada sin costes, tamaño de mercado y motivos de cancelación.
 
 ## 6. Prioridades de gestión
 
@@ -99,13 +109,13 @@ The business shows substantial recorded activity, but management interpretation 
 
 Gross sales peak in **2011-11** (£1,509,496) and reach their minimum in **2011-02** (£523,632). The monthly Pearson correlation between gross sales and cancelled value is **-0.13**, and the rank correlation is **0.21**, based on only 13 months. This does not show a stable co-movement that can forecast cancellations from sales; cancellation control should be managed as a separate operational process.
 
-Repeat customers account for **65.6%** of identified customers and **93.1%** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **24.9%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not enough to justify loyalty investment without margin and cost data.
+Repeat customers—defined here as an observed `CustomerID` linked to more than one unique invoice—account for **65.6%** of identified customers and **93.1%** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **24.9%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not a retention or churn measure, and it is not enough to justify loyalty investment without margin and cost data.
 
 ### Action line: identify and reduce avoidable cancellations
 
-Cancellations may be a lever for improving economic results, but the dataset does not identify their causes or confirm their logistics costs. The `C` prefix does not prove that every case is a customer return. Before tightening the returns policy, the business should classify cases by reason: return, order error, stock issue, price, delivery or administrative adjustment.
+Cancelling avoidable transactions may improve contribution by reducing administrative work, logistics costs and lost sales, but the dataset does not yet quantify those costs. The `C` prefix does not prove that every case is a customer return. Before tightening the returns policy, the business should classify cases by reason: return, order error, stock issue, price, delivery or administrative adjustment.
 
-The first priority should be correcting avoidable operational causes—stock, prices, descriptions, fulfilment and delivery—without damaging customer trust. Any returns-policy change should comply with applicable law, be tested in a controlled pilot and be evaluated using sales, conversion, complaints, repeat purchase, logistics cost and margin. The objective is not to minimise cancellations at any cost, but to improve contribution and long-term customer relationships.
+The first priority should be understanding and correcting avoidable operational causes—stock, prices, descriptions, fulfilment and delivery—without damaging customer trust. Clear, repetitive cases may be automated to reduce friction and back-office work without restricting legitimate rights. Any returns-policy change should comply with applicable law, be tested in a controlled pilot and be evaluated using sales, conversion, complaints, repeat purchase, logistics cost and margin. The objective is not to minimise cancellations at any cost, but to reduce cost and friction while protecting long-term customer relationships.
 
 ### Priorities
 
