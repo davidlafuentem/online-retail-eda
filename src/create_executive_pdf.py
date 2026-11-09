@@ -530,24 +530,19 @@ def generate_pdf(stats: dict[str, object], output_path: Path = EXPERT_PDF_OUTPUT
         ax2.tick_params(axis="y", labelsize=7)
         ax2.grid(axis="x", alpha=.25)
 
-        ax3 = fig.add_axes([0.58, 0.18, 0.34, 0.22])
-        operational_display = audit_operational.copy()
-        operational_display["Label"] = np.where(
-            operational_display["IsOperationalConcept"],
-            "Códigos operativos",
-            "Productos físicos",
-        )
-        operational_display = operational_display.sort_values("CancelledValueSharePct")
-        ax3.barh(operational_display["Label"], operational_display["CancelledValueSharePct"], color=[MID_BLUE, RED])
-        ax3.set_xlabel("Parte del valor cancelado (%)")
-        ax3.set_ylabel("Población")
-        ax3.set_title("Una parte material usa códigos no físicos", loc="left", weight="bold", fontsize=10)
-        ax3.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:.0f}%"))
-        ax3.set_xlim(0, 100)
+        ax3 = fig.add_axes([0.64, 0.18, 0.28, 0.22])
+        physical_products = audit_product.head(8).sort_values("CancelledValue")
+        physical_products["DescriptionDisplay"] = physical_products["Description"].astype(str).str[:17]
+        ax3.barh(physical_products["DescriptionDisplay"], physical_products["CancelledValue"], color=RED)
+        ax3.set_xlabel("Valor cancelado identificado (£)")
+        ax3.set_ylabel("Producto físico")
+        ax3.set_title("Top físicos por cancelado", loc="left", weight="bold", fontsize=10)
+        ax3.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"£{value / 1000:.0f}k"))
+        ax3.tick_params(axis="y", labelsize=6.5)
         ax3.grid(axis="x", alpha=.25)
         caption(
             fig,
-            "los países pequeños pueden producir tasas inestables; el reparto operativo/físico exige clasificar motivos antes de atribuir devoluciones.",
+            "países pequeños: tasas inestables. Productos extremos y códigos operativos requieren investigar causas.",
             0.085,
         )
         finish(pdf, fig)
