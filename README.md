@@ -47,6 +47,7 @@ notebooks/     notebook de análisis
 reports/       resumen ejecutivo
 src/           reglas reutilizables y generación del informe
 specs/         especificación OpenSpec
+PROJECT_LOG.md bitácora bilingüe del desarrollo y las decisiones
 proposal.md    propuesta del proyecto
 design.md      diseño analítico y política de limpieza
 tasks.md       checklist de implementación
