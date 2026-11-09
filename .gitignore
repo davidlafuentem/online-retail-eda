@@ -11,3 +11,4 @@ dataset/*.zip
 # Generated outputs
 reports/figures/
 *.html
+!reports/executive_report.pdf
