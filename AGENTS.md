@@ -25,6 +25,22 @@ The audience is a non-technical business stakeholder and a data-analyst recruite
   notebook actually uses it.
 - The notebook must run from top to bottom after dependencies are installed.
 
+## Branch and pull-request workflow
+
+- Do not develop feature work directly on `main`.
+- Start each coherent feature or level of the project from the current integration branch using a
+  dedicated, descriptive branch.
+- Keep one coherent deliverable per branch and use small, meaningful commits that describe the
+  completed work.
+- Open a pull request for review before integrating the branch into `main`, even when the author is
+  also the reviewer. Mark self-review explicitly; it is not equivalent to independent peer review.
+- Use the pull request to record scope, decisions, validation results, limitations and any remaining
+  risks. Do not create retrospective pull requests for changes already integrated into `main` merely
+  to simulate an earlier workflow.
+- Never rewrite or force-push the shared integration branch to manufacture historical branches or
+  pull requests. If a historical reconstruction is ever needed for educational purposes, keep it in
+  a separate branch or repository and label it as reconstructed.
+
 ## Presentation
 
 - Every chart must have a meaningful title, labelled axes and units where applicable.
