@@ -1,41 +1,87 @@
-# Resumen ejecutivo / Executive summary — Online Retail EDA
+# Informe ejecutivo — Online Retail EDA
 
-## Español
+## 1. Lectura para gerencia
 
-### Pregunta de negocio
+Este informe resume la situación comercial observada en las líneas de factura del dataset UCI Online Retail durante **December 2010–December 2011**. La unidad original es una línea de factura; `Revenue = Quantity × UnitPrice` y no representa beneficio porque no hay costes, margen ni gastos logísticos.
 
-¿Qué patrones de ventas, clientes y cancelaciones debería conocer la empresa para mejorar sus decisiones comerciales?
+### Cuadro de mando
 
-### Datos y alcance
+| Indicador | Resultado | Lectura gerencial |
+|---|---:|---|
+| Ventas brutas positivas | £10,666,685 | Volumen comercial registrado antes de cancelaciones. |
+| Valor identificado como cancelado | £896,812 (8.4% de ventas brutas) | Riesgo material que requiere conciliación. |
+| Balance registrado — todas las líneas | £9,747,748 | Suma de `Revenue` en todas las filas, incluidos ajustes y líneas con precio no positivo; no es beneficio. |
+| Ingreso neto — líneas con precio positivo | £9,769,872 | Suma de `Revenue` con `UnitPrice > 0`, usada para rankings de productos y países; no es beneficio. |
+| Facturas con alguna cancelación | 14.8% | Tasa sobre facturas, no sobre líneas. |
+| Peso del Reino Unido | 84.0% | Alta dependencia geográfica. |
+| Filas con CustomerID | 75.1% | La lectura de clientes no cubre todo el negocio. |
 
-El análisis utiliza líneas de factura del dataset Online Retail de UCI. Las ventas y cancelaciones se analizan por separado. `Revenue` significa `Quantity × UnitPrice`; no representa beneficio.
+**Mensaje principal:** la empresa muestra un volumen comercial relevante, pero la lectura de rendimiento está condicionada por cancelaciones, concentración en Reino Unido y cobertura incompleta de clientes. Antes de optimizar productos o mercados conviene asegurar la conciliación de ingresos y la calidad de la identificación de clientes.
 
-### Hallazgos principales
+## 2. Evolución del negocio
 
-1. **La calidad de los datos condiciona la lectura comercial.** `CustomerID` falta en el 24,93 % de las filas y existen 5.268 duplicados exactos. Cantidades, precios y cancelaciones requieren reglas explícitas.
-2. **Las cancelaciones tienen un impacto material.** Las ventas brutas positivas suman aproximadamente £10,67 millones y las cancelaciones identificadas representan aproximadamente £896.812 en valor absoluto. El 14,81 % de las facturas únicas aparece marcado como cancelado.
-3. **Las operaciones extremas pueden distorsionar los rankings.** Una línea de +80.995 unidades es seguida por una reversión de -80.995 unidades 12 minutos después. Su cantidad e ingreso netos son cero.
-4. **Los ingresos están concentrados geográficamente.** Reino Unido representa aproximadamente el 84 % de los ingresos netos calculados. Las comparaciones internacionales deben incorporar denominadores y costes.
-5. **Los clientes recurrentes concentran el valor identificado.** Representan aproximadamente el 65,6 % de los clientes con `CustomerID` observado y el 93,1 % de los ingresos brutos de esa población. El resultado no se puede generalizar a las filas sin identificador.
-6. **Las líneas de alto volumen son relevantes, pero no demuestran venta mayorista.** El 10 % superior de líneas por cantidad representa aproximadamente el 43,3 % de los ingresos brutos y tiene un precio unitario medio inferior. El dataset no permite establecer condición mayorista ni rentabilidad.
+Las ventas brutas alcanzan su máximo en **2011-11** (£1,509,496) y su mínimo en **2011-02** (£523,632). El mes de mayor actividad no demuestra por sí solo una causa concreta: no hay datos de campañas, stock, precios, costes ni calendario comercial comparable.
 
-### Recomendaciones
+La media móvil de tres meses ayuda a distinguir movimientos puntuales de la evolución reciente. El periodo cubre aproximadamente un año, por lo que permite observar estacionalidad potencial, pero no comparar crecimiento interanual.
 
-- Conciliar cancelaciones y operaciones extremas antes de usar rankings para compras o inventario.
-- Separar productos físicos de portes, descuentos, muestras y ajustes.
-- Mejorar la captura de `CustomerID` para reforzar el análisis de retención y valor de cliente.
-- Comparar países usando tasas de cancelación, pedidos, ticket medio y costes logísticos.
-- Investigar las operaciones de alto volumen con datos de margen y segmentación antes de tratarlas como oportunidades mayoristas.
+La correlación mensual entre ventas brutas y valor cancelado es **-0.13** (Pearson) y **0.21** (Spearman), calculada sobre solo 13 meses. No aparece una relación conjunta estable que permita anticipar cancelaciones a partir de las ventas; conviene gestionar las cancelaciones como un proceso operativo separado. La mayor proporción mensual de valor cancelado es **32.1%** de las ventas brutas del mes, por lo que el seguimiento debe usar tanto importes absolutos como proporciones.
 
-### Limitaciones
+## 3. Cancelaciones y riesgo operativo
 
-- No hay costes, márgenes ni gastos logísticos.
-- `CustomerID` falta en una parte relevante de las filas.
-- El dataset no identifica pedidos mayoristas ni motivos de cancelación.
-- Los patrones descriptivos no demuestran causalidad.
-- La unidad original es una línea de factura, no necesariamente un pedido completo.
+Se identifican 9,288 líneas de cancelación y 3,836 facturas afectadas. El valor cancelado equivale al **8.4%** de las ventas brutas positivas. Esta magnitud debe revisarse junto con devoluciones, reversiones y posibles ajustes administrativos antes de usar ingresos para objetivos o previsiones.
 
----
+### Línea de actuación: descubrir y reducir cancelaciones evitables
+
+Las cancelaciones pueden ser una palanca de mejora del resultado económico, pero el dataset no identifica sus causas ni confirma sus costes logísticos. El prefijo `C` tampoco demuestra que todas sean devoluciones de clientes. Antes de endurecer la política de devoluciones, la empresa debería clasificar los casos por motivo: devolución, error de pedido, falta de stock, precio, entrega o ajuste administrativo.
+
+La prioridad inicial debería ser corregir causas operativas evitables —stock, precios, descripciones, preparación y entrega— sin deteriorar la confianza del cliente. Cualquier cambio en la política de devoluciones debe respetar la normativa, probarse de forma controlada y evaluarse con ventas, conversión, reclamaciones, repetición de compra, costes logísticos y margen. El objetivo no es minimizar cancelaciones a cualquier coste, sino mejorar la contribución económica y la relación a largo plazo con el cliente.
+
+## 4. Clientes y concentración de valor
+
+Los clientes recurrentes representan el **65.6%** de los clientes identificados y concentran el **93.1%** del ingreso dentro de esa población. No puede extrapolarse a las filas sin `CustomerID`: falta ese identificador en el **24.9%** de las filas.
+
+Esta observación tiene dos lecturas gerenciales distintas: es primero un **riesgo operativo de información**, porque la cobertura de clientes impide medir el negocio completo; y, dentro de la población identificada, una señal de posible **concentración de cuentas**, útil para priorizar retención y continuidad de servicio. No permite decidir inversiones en fidelización sin margen, costes y cobertura completa.
+
+## 5. Productos y mercados
+
+Los diez productos físicos principales concentran aproximadamente el **8.0%** del ingreso neto de productos físicos y el primero representa aproximadamente el **1.7%**. Esto no demuestra una dependencia fuerte de pocas referencias; sí justifica revisar las referencias de mayor ingreso junto con disponibilidad, margen y riesgo de sustitución.
+
+Los cinco países con mayor **ingreso neto de líneas con precio positivo** son:
+
+- **United Kingdom:** £8,209,930 en 21,391 facturas
+- **Netherlands:** £284,662 en 100 facturas
+- **Ireland:** £263,277 en 360 facturas
+- **Germany:** £221,698 en 603 facturas
+- **France:** £197,404 en 461 facturas
+
+El Reino Unido representa el **84.0%** del ingreso neto de líneas con precio positivo. Las comparaciones internacionales deben incorporar facturas, cancelaciones, costes logísticos y margen; el ingreso por habitante solo aporta contexto y no mide cuota de mercado.
+
+## 6. Prioridades de gestión
+
+1. **En 0–30 días, Finanzas y Operaciones:** conciliar ventas y cancelaciones semanalmente. KPI: valor cancelado/ventas brutas y tasa de facturas afectadas.
+2. **En 30–60 días, Comercial y Supply:** revisar las referencias que concentran el ingreso junto con disponibilidad y margen antes de aumentar compras.
+3. **En 60–90 días, Dirección Comercial:** comparar países por ingreso, facturas, cancelaciones, costes logísticos y rentabilidad antes de invertir en expansión.
+4. **En 0–30 días, Operaciones y CRM:** mejorar la captura de `CustomerID`. KPI: cobertura de filas identificadas; después, medir repetición, retención y concentración de cuentas.
+5. **En el siguiente ciclo de datos, Finanzas y BI:** incorporar costes, margen, logística, campañas, stock y motivos de cancelación para pasar de facturación descriptiva a decisiones económicas.
+
+## Anexo: principales productos por ingreso neto de líneas con precio positivo
+
+| Producto | Ingreso | Facturas |
+|---|---:|---:|
+| REGENCY CAKESTAND 3 TIER | £164,762 | 2,168 |
+| PARTY BUNTING | £98,303 | 1,705 |
+| WHITE HANGING HEART T-LIGHT HOLDER | £97,716 | 2,231 |
+| JUMBO BAG RED RETROSPOT | £92,356 | 2,132 |
+| RABBIT NIGHT LIGHT | £66,757 | 1,009 |
+
+## Limitaciones
+
+- El análisis trabaja con líneas de factura, no necesariamente con pedidos completos.
+- `Revenue` no es beneficio: faltan costes, márgenes, logística y gastos comerciales.
+- No se imputa `CustomerID`; las métricas de clientes cubren solo la población identificada.
+- Las cancelaciones no incluyen su motivo.
+- Los duplicados, precios cero, cantidades negativas y operaciones extremas son señales que deben investigarse, no conclusiones automáticas.
+- Las relaciones descriptivas no demuestran causalidad.
 
 ## English
 
@@ -45,29 +91,32 @@ What patterns in sales, customers and cancellations should the retailer understa
 
 ### Data and scope
 
-The analysis uses invoice-line records from UCI's Online Retail dataset. Sales and cancellations are analysed separately. `Revenue` means `Quantity × UnitPrice`; it is not profit.
+This report uses invoice-line records from UCI's Online Retail dataset during **December 2010–December 2011**. `Revenue = Quantity × UnitPrice`; it is recorded revenue, not profit, because costs, margins and logistics expenses are unavailable.
 
-### Key findings
+### Management reading
 
-1. **Data quality affects the commercial reading.** `CustomerID` is missing in 24.93% of rows and there are 5,268 exact duplicates. Quantities, prices and cancellations require explicit rules.
-2. **Cancellations have material impact.** Gross positive sales total approximately £10.67M and identified cancellations represent approximately £896,812 in absolute value. The invoice-level cancellation rate is approximately 14.81%.
-3. **Extreme operations can distort rankings.** A +80,995-unit line is followed by a -80,995 reversal 12 minutes later. Its net quantity and revenue are zero.
-4. **Revenue is geographically concentrated.** The United Kingdom represents approximately 84% of calculated net revenue. International comparisons should include denominators and costs.
-5. **Identified repeat customers concentrate value.** They represent approximately 65.6% of customers with an observed `CustomerID` and 93.1% of gross revenue within that population. This cannot be generalised to rows without an identifier.
-6. **High-volume lines matter, but do not prove wholesale sales.** The top 10% of lines by quantity represent approximately 43.3% of gross revenue and have a lower average unit price. The dataset cannot establish wholesale status or profitability.
+The business shows substantial recorded activity, but management interpretation is constrained by cancellations, strong UK concentration and incomplete customer identification. Gross sales, cancelled value, the all-lines recorded balance and positive-price net revenue must remain separate.
 
-### Recommendations
+Gross sales peak in **2011-11** (£1,509,496) and reach their minimum in **2011-02** (£523,632). The monthly Pearson correlation between gross sales and cancelled value is **-0.13**, and the rank correlation is **0.21**, based on only 13 months. This does not show a stable co-movement that can forecast cancellations from sales; cancellation control should be managed as a separate operational process.
 
-- Reconcile cancellations and extreme-value operations before using product rankings for purchasing or inventory decisions.
-- Separate physical products from postage, discounts, samples and administrative adjustments.
-- Improve `CustomerID` capture to strengthen retention and customer-value analysis.
-- Compare countries using cancellation rates, order counts, average order value and logistics costs.
-- Investigate high-volume operations with margin and customer-segment data before treating them as wholesale opportunities.
+Repeat customers account for **65.6%** of identified customers and **93.1%** of revenue within that identified population. This is first a data-quality issue because `CustomerID` is missing from **24.9%** of rows; within the identified population it may also indicate account concentration relevant to retention and service continuity. It is not enough to justify loyalty investment without margin and cost data.
+
+### Action line: identify and reduce avoidable cancellations
+
+Cancellations may be a lever for improving economic results, but the dataset does not identify their causes or confirm their logistics costs. The `C` prefix does not prove that every case is a customer return. Before tightening the returns policy, the business should classify cases by reason: return, order error, stock issue, price, delivery or administrative adjustment.
+
+The first priority should be correcting avoidable operational causes—stock, prices, descriptions, fulfilment and delivery—without damaging customer trust. Any returns-policy change should comply with applicable law, be tested in a controlled pilot and be evaluated using sales, conversion, complaints, repeat purchase, logistics cost and margin. The objective is not to minimise cancellations at any cost, but to improve contribution and long-term customer relationships.
+
+### Priorities
+
+1. **Within 0–30 days, Finance and Operations:** reconcile sales and cancellations weekly. KPI: cancelled value/gross sales and affected-invoice rate.
+2. **Within 30–60 days, Commercial and Supply:** review concentrated product references together with availability and margin.
+3. **Within 60–90 days, Commercial leadership:** compare countries using revenue, orders, cancellation rates, logistics costs and profitability rather than revenue alone.
+4. **Within 0–30 days, Operations and CRM:** improve `CustomerID` capture as an operational data-quality KPI; then measure retention and account concentration.
+5. **In the next data cycle, Finance and BI:** add cost, margin, logistics, campaign, stock and cancellation-reason data before building forecasts or profitability decisions.
 
 ### Limitations
 
-- Costs, margins and logistics expenses are unavailable.
-- Missing `CustomerID` values limit customer-level conclusions.
-- The dataset does not identify wholesale orders or cancellation reasons.
-- Descriptive patterns do not prove causality.
 - The original grain is an invoice line, not necessarily a complete order.
+- The dataset does not identify wholesale orders or cancellation reasons.
+- Descriptive relationships do not establish causality.
